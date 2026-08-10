@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14201b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pantry">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="icon" href="/icon.svg">
+<title>Pantry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<style>
+:root{
+  --bg:#14201b;        /* deep cellar green */
+  --bg2:#1b2a23;
+  --panel:#22332b;
+  --line:#31473c;
+  --ink:#eef3ec;        /* pale label */
+  --muted:#9ab2a4;
+  --amber:#f2b155;      /* shelf light */
+  --amber-deep:#d98b2b;
+  --clay:#e07a5f;
+  --leaf:#7bbf7b;
+  --radius:18px;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(120% 60% at 50% -10%, #24382e 0%, var(--bg) 55%) fixed,
+    var(--bg);
+  color:var(--ink);
+  font-family:"Archivo",system-ui,sans-serif;
+  min-height:100vh;
+  padding-bottom:110px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:680px;margin:0 auto;padding:0 18px}
+
+/* Header */
+header{
+  padding:calc(env(safe-area-inset-top) + 22px) 18px 14px;
+  max-width:680px;margin:0 auto;
+}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{
+  font-family:"Fraunces",serif;font-weight:900;font-size:34px;letter-spacing:-.5px;
+  margin:0;line-height:1;
+}
+.brand .dot{width:11px;height:11px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 14px var(--amber);align-self:center;margin-bottom:2px}
+.tagline{color:var(--muted);font-size:13px;margin-top:6px;letter-spacing:.2px}
+
+/* Stat strip */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0 4px}
+.stat{
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-radius:14px;padding:12px 12px 10px;
+}
+.stat .n{font-family:"Fraunces",serif;font-weight:900;font-size:26px;line-height:1}
+.stat .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-top:5px}
+.stat.amber .n{color:var(--amber)}
+.stat.leaf .n{color:var(--leaf)}
+.stat.expiring{cursor:pointer;transition:.18s}
+.stat.expiring .n{color:var(--muted)}
+.stat.expiring.alert{border-color:rgba(232,132,60,.5);background:linear-gradient(180deg,rgba(232,132,60,.14),var(--bg2))}
+.stat.expiring.alert .n{color:#f6a05a}
+.stat.expiring:active{transform:scale(.97)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin:20px 0 14px;background:var(--bg2);
+  border:1px solid var(--line);border-radius:14px;padding:5px}
+.tab{flex:1;text-align:center;padding:10px 3px;border-radius:10px;
+  color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;
+  transition:.18s;border:none;background:none;font-family:inherit;white-space:nowrap}
+.tab.active{background:var(--amber);color:#1a1207;box-shadow:0 4px 12px rgba(242,177,85,.3)}
+
+/* Search */
+.search{position:relative;margin-bottom:16px}
+
+/* Grocery list */
+.list-add{display:flex;gap:8px;margin-bottom:16px}
+.list-add input{flex:1;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px;color:var(--ink);font-size:16px;
+  font-family:inherit;outline:none}
+.list-add input:focus{border-color:var(--amber)}
+.list-add button{background:var(--amber);color:#1a1207;border:none;border-radius:12px;
+  padding:0 20px;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;flex-shrink:0}
+.list-add button:active{transform:scale(.97)}
+.list-row{display:flex;align-items:center;gap:13px;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:10px;
+  animation:rise .3s both;transition:.2s}
+.list-row.checked{opacity:.55}
+.list-check{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);
+  flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:.15s;
+  background:var(--bg)}
+.list-check.on{background:var(--leaf);border-color:var(--leaf);color:#0d1a0d}
+.list-body{flex:1;min-width:0}
+.list-name{font-weight:600;font-size:16px;line-height:1.2}
+.list-row.checked .list-name{text-decoration:line-through}
+.list-meta{color:var(--muted);font-size:12px;margin-top:3px}
+.list-del{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;
+  flex-shrink:0;padding:4px 6px;line-height:1}
+.list-del:active{color:var(--clay)}
+.list-clear{width:100%;margin-top:8px;background:var(--panel);border:1px solid var(--line);
+  color:var(--ink);border-radius:12px;padding:13px;font-weight:600;font-size:14px;
+  font-family:inherit;cursor:pointer}
+.list-clear:active{background:var(--clay);color:#fff}
+.list-divider{display:flex;align-items:center;gap:10px;margin:18px 4px 12px;
+  color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+.list-divider::before,.list-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* Name prompt */
+.name-prompt{background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center}
+.name-prompt h3{font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin:0 0 6px}
+.name-prompt p{color:var(--muted);font-size:13px;margin:0 0 14px;line-height:1.4}
+.name-prompt input{width:100%;background:var(--bg);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px;color:var(--ink);font-size:16px;
+  font-family:inherit;outline:none;margin-bottom:10px}
+.name-prompt input:focus{border-color:var(--amber)}
+.name-prompt button{width:100%;background:var(--amber);color:#1a1207;border:none;
+  border-radius:12px;padding:13px;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer}
+.whoami{display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  font-size:12px;color:var(--muted);margin-bottom:12px}
+.whoami b{color:var(--amber)}
+.whoami button{background:none;border:none;color:var(--muted);font-size:12px;
+  text-decoration:underline;cursor:pointer;font-family:inherit;padding:0}
+.search input{width:100%;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px 13px 42px;color:var(--ink);font-size:15px;
+  font-family:inherit;outline:none}
+.search input:focus{border-color:var(--amber)}
+.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  width:18px;height:18px;color:var(--muted)}
+
+/* Item cards — "jars on a shelf" */
+.shelf{display:flex;flex-direction:column;gap:12px}
+.item{
+  display:flex;gap:14px;align-items:center;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-left:4px solid var(--amber);
+  border-radius:var(--radius);padding:13px 14px;box-shadow:var(--shadow);
+  animation:rise .3s ease both;
+}
+.item.supply{border-left-color:var(--clay)}
+/* Freshness — the left edge encodes how soon a grocery goes bad. */
+.item.fresh{border-left-color:var(--leaf)}
+.item.soon{border-left-color:var(--amber)}
+.item.urgent{border-left-color:#e8843c}
+.item.expired{border-left-color:#d94f4f}
+.fresh-cue{display:inline-flex;align-items:center;gap:4px;font-size:11px;
+  padding:2px 9px;border-radius:999px;font-weight:600;border:1px solid transparent}
+.fresh-cue.fresh{color:var(--leaf);background:rgba(123,191,123,.12);border-color:rgba(123,191,123,.28)}
+.fresh-cue.soon{color:var(--amber);background:rgba(242,177,85,.12);border-color:rgba(242,177,85,.3)}
+.fresh-cue.urgent{color:#f6a05a;background:rgba(232,132,60,.15);border-color:rgba(232,132,60,.4)}
+.fresh-cue.expired{color:#f27c7c;background:rgba(217,79,79,.15);border-color:rgba(217,79,79,.42)}
+.fresh-dot{width:7px;height:7px;border-radius:50%;background:currentColor;
+  box-shadow:0 0 7px currentColor}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.thumb{width:54px;height:54px;border-radius:12px;flex-shrink:0;overflow:hidden;
+  background:var(--bg);display:grid;place-items:center;border:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .ph{font-size:24px}
+.item .body{flex:1;min-width:0}
+.item .name{font-weight:600;font-size:16px;line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .meta{color:var(--muted);font-size:12.5px;margin-top:3px;display:flex;
+  gap:8px;flex-wrap:wrap;align-items:center}
+.pill{background:var(--bg);border:1px solid var(--line);border-radius:999px;
+  padding:2px 9px;font-size:11px;color:var(--muted)}
+.pill.type{color:var(--amber);border-color:var(--amber-deep)}
+.qty{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.qbtn{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
+  background:var(--bg);color:var(--ink);font-size:18px;cursor:pointer;
+  display:grid;place-items:center;font-family:inherit}
+.qbtn:active{background:var(--amber);color:#1a1207}
+.qnum{min-width:20px;text-align:center;font-weight:700;font-family:"Fraunces",serif}
+.done{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg);cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+.done:active{background:var(--leaf)}
+
+/* Recipes */
+.recipe{background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;
+  margin-bottom:12px;box-shadow:var(--shadow);animation:rise .3s both}
+.recipe h3{font-family:"Fraunces",serif;font-weight:600;margin:0 0 8px;font-size:19px}
+.bar{height:7px;background:var(--bg);border-radius:99px;overflow:hidden;margin:8px 0}
+.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--amber),var(--leaf))}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:11px;padding:3px 9px;border-radius:99px;background:rgba(123,191,123,.14);
+  color:var(--leaf);border:1px solid rgba(123,191,123,.3)}
+.tag.miss{background:rgba(224,122,95,.12);color:var(--clay);border-color:rgba(224,122,95,.3)}
+
+/* Online recipe cards (with thumbnail) */
+.recipe-card{display:flex;gap:14px;align-items:center;padding:12px;cursor:pointer;transition:.15s}
+.recipe-card:active{transform:scale(.99)}
+.recipe-thumb{width:76px;height:76px;border-radius:12px;object-fit:cover;flex-shrink:0;
+  border:1px solid var(--line)}
+.recipe-info{flex:1;min-width:0}
+.recipe-info h3{margin:0 0 6px;font-size:17px}
+/* Recipe detail */
+.recipe-hero{width:100%;height:200px;object-fit:cover;border-radius:14px}
+.rsec{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin:20px 0 10px}
+.ring-list{display:flex;flex-direction:column;gap:2px}
+.ring{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px}
+.ring.have{background:rgba(123,191,123,.1)}
+.ring-check{width:18px;flex-shrink:0;color:var(--muted);font-size:13px}
+.ring.have .ring-check{color:var(--leaf)}
+.ring-name{flex:1;font-size:14.5px}
+.ring.have .ring-name{color:var(--ink)}
+.ring-meas{color:var(--muted);font-size:13px;flex-shrink:0}
+.ring-add{flex-shrink:0;background:none;border:1px solid rgba(242,177,85,.4);
+  color:var(--amber);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;
+  font-family:inherit;cursor:pointer;white-space:nowrap}
+.ring-add:active{background:rgba(242,177,85,.14)}
+.ring-add.added,.add-all.added{border-color:rgba(123,191,123,.4);color:var(--leaf);opacity:.85}
+.add-all{width:100%;margin-bottom:12px;background:rgba(242,177,85,.12);
+  border:1px solid rgba(242,177,85,.4);color:var(--amber);border-radius:12px;
+  padding:12px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer}
+.add-all:active{background:rgba(242,177,85,.2)}
+.rsteps{padding-left:20px;margin:0}
+.rsteps li{font-size:14.5px;line-height:1.6;margin-bottom:10px;padding-left:4px}
+.rlink{display:inline-block;margin-top:16px;color:var(--amber);text-decoration:none;
+  font-weight:600;font-size:14px}
+
+.empty{text-align:center;color:var(--muted);padding:50px 20px}
+.empty .big{font-size:42px;margin-bottom:12px}
+.empty p{font-size:14px;line-height:1.5}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);
+  left:50%;transform:translateX(-50%);z-index:40;
+  display:flex;gap:10px}
+.fab button{border:none;font-family:inherit;font-weight:700;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.fab .scan{background:var(--amber);color:#1a1207;border-radius:16px;
+  padding:15px 22px;font-size:15px;display:flex;align-items:center;gap:9px}
+.fab .add{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:16px;padding:15px 18px;font-size:15px}
+
+/* Sheet / modal */
+.sheet-bg{position:fixed;inset:0;background:rgba(6,12,9,.72);z-index:50;
+  opacity:0;pointer-events:none;transition:.25s;backdrop-filter:blur(3px)}
+.sheet-bg.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;
+  background:var(--bg2);border-top:1px solid var(--line);
+  border-radius:24px 24px 0 0;padding:8px 20px calc(env(safe-area-inset-bottom) + 24px);
+  transform:translateY(100%);transition:.32s cubic-bezier(.22,1,.36,1);
+  max-height:92vh;overflow-y:auto;max-width:680px;margin:0 auto;
+  pointer-events:none}
+.sheet.open{transform:none;pointer-events:auto}
+
+/* On wider screens (desktop/tablet), present the sheet as a centered card
+   rather than a bottom drawer — cleaner for people checking on a computer. */
+@media (min-width:720px){
+  .sheet,.sheet#catMgr{
+    left:50%;right:auto;bottom:auto;top:50%;
+    width:480px;max-width:92vw;
+    border:1px solid var(--line);border-radius:20px;
+    transform:translate(-50%,-46%) scale(.98);
+    transition:opacity .24s ease, transform .24s cubic-bezier(.22,1,.36,1);
+    max-height:88vh;
+    opacity:0;visibility:hidden;pointer-events:none;
+  }
+  .sheet.open,.sheet#catMgr.open{
+    transform:translate(-50%,-50%) scale(1);
+    opacity:1;visibility:visible;pointer-events:auto;
+  }
+  .grab{display:none}
+}
+.grab{width:42px;height:5px;background:var(--line);border-radius:99px;
+  margin:8px auto 18px;cursor:grab;touch-action:none}
+.grab:active{cursor:grabbing}
+/* A dedicated header row with an always-visible close button, so the sheet can
+   always be dismissed even on short screens where no backdrop is tappable. */
+.sheet-close{position:absolute;top:14px;right:16px;width:34px;height:34px;
+  border-radius:50%;border:1px solid var(--line);background:var(--bg);
+  color:var(--muted);font-size:20px;line-height:1;cursor:pointer;z-index:2;
+  display:grid;place-items:center;font-family:inherit}
+.sheet-close:active{background:var(--panel);color:var(--ink)}
+.sheet h2{font-family:"Fraunces",serif;font-weight:600;font-size:23px;margin:0 0 16px}
+label.f{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.6px;margin:14px 0 6px;font-weight:600}
+.sheet input,.sheet select,.sheet textarea{width:100%;background:var(--bg);
+  border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--ink);
+  font-size:16px;font-family:inherit;outline:none}
+.sheet input:focus,.sheet select:focus,.sheet textarea:focus{border-color:var(--amber)}
+.sheet select{appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ab2a4' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+/* Date & number inputs carry native controls (calendar, spinners) that can push
+   past the box on iOS; force them to respect the column width. */
+.sheet input[type="date"],.sheet input[type="number"]{
+  min-width:0;max-width:100%;width:100%;
+  -webkit-appearance:none;appearance:none}
+.sheet input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}
+.seg{display:flex;gap:6px;background:var(--bg);border:1px solid var(--line);
+  border-radius:12px;padding:5px}
+.seg button{flex:1;padding:11px;border-radius:9px;border:none;background:none;
+  color:var(--muted);font-weight:600;font-family:inherit;font-size:14px;cursor:pointer}
+.seg button.on{background:var(--amber);color:#1a1207}
+.seg button.on.clay{background:var(--clay);color:#fff}
+.save{width:100%;margin-top:22px;background:var(--amber);color:#1a1207;border:none;
+  border-radius:14px;padding:16px;font-size:16px;font-weight:700;font-family:inherit;
+  cursor:pointer}
+.save:active{transform:scale(.99)}
+.del-item{width:100%;margin-top:10px;background:none;border:1px solid rgba(224,122,95,.4);
+  color:var(--clay);border-radius:14px;padding:14px;font-size:15px;font-weight:600;
+  font-family:inherit;cursor:pointer}
+.del-item:active{background:rgba(224,122,95,.12)}
+.photo-preview{width:100%;height:170px;border-radius:14px;object-fit:cover;
+  margin-top:8px;border:1px solid var(--line)}
+.ghost{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  border-radius:12px;padding:13px;width:100%;font-family:inherit;font-weight:600;
+  font-size:14px;cursor:pointer;margin-top:8px;display:flex;align-items:center;
+  justify-content:center;gap:8px}
+
+/* Scanner overlay */
+#scanView{position:fixed;inset:0;z-index:60;background:#000;display:none;
+  flex-direction:column}
+#scanView video{width:100%;height:100%;object-fit:cover}
+.scan-frame{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.reticle{width:74%;max-width:340px;height:200px;border:2px solid var(--amber);
+  border-radius:18px;box-shadow:0 0 0 100vmax rgba(0,0,0,.5);position:relative}
+.reticle::after{content:"";position:absolute;left:0;right:0;height:2px;
+  background:var(--amber);box-shadow:0 0 12px var(--amber);
+  animation:sweep 2s ease-in-out infinite}
+@keyframes sweep{0%,100%{top:6%}50%{top:92%}}
+.scan-hint{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 90px);
+  left:0;right:0;text-align:center;color:#fff;font-size:14px;text-shadow:0 1px 4px #000}
+.scan-close{position:absolute;top:calc(env(safe-area-inset-top) + 16px);right:18px;
+  width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.5);border:1px solid #444;
+  color:#fff;font-size:22px;cursor:pointer;z-index:2}
+.scan-manual{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 30px);
+  left:50%;transform:translateX(-50%);background:var(--amber);color:#1a1207;border:none;
+  border-radius:12px;padding:13px 22px;font-weight:700;font-family:inherit;font-size:15px;cursor:pointer}
+
+.toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:70;
+  opacity:0;transition:.3s;box-shadow:var(--shadow);white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Offline banner */
+.offline-bar{
+  max-width:680px;margin:0 auto 4px;padding:0 18px;
+  display:none;
+}
+.offline-bar.show{display:block}
+.offline-bar .inner{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(224,122,95,.14);border:1px solid rgba(224,122,95,.4);
+  color:#f0c3b5;border-radius:12px;padding:10px 13px;font-size:13px;
+}
+.offline-bar .inner svg{width:16px;height:16px;flex-shrink:0;color:var(--clay)}
+.offline-bar b{color:#fff;font-weight:600}
+.offline-bar .when{color:var(--muted);margin-left:auto;white-space:nowrap;font-size:12px}
+body.offline-mode .qbtn,body.offline-mode .done,body.offline-mode .fab{opacity:.45}
+
+.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);
+  border-top-color:var(--amber);border-radius:50%;animation:sp .7s linear infinite;
+  display:inline-block;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><h1>Pantry</h1><span class="dot"></span></div>
+  <div class="tagline">What the house has, and what it can make.</div>
+  <div class="stats">
+    <div class="stat amber"><div class="n" id="s-groc">0</div><div class="l">Groceries</div></div>
+    <div class="stat"><div class="n" id="s-sup">0</div><div class="l">Supplies</div></div>
+    <div class="stat expiring" id="stat-exp" onclick="switchView('expiring')"><div class="n" id="s-exp">0</div><div class="l">Use soon</div></div>
+  </div>
+</header>
+
+<div class="offline-bar" id="offlineBar">
+  <div class="inner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+    <span>Offline — <b>showing last synced</b> shelf</span>
+    <span class="when" id="syncWhen"></span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-view="grocery">Groceries</button>
+    <button class="tab" data-view="supply">Supplies</button>
+    <button class="tab" data-view="list">List</button>
+    <button class="tab" data-view="expiring">Use soon</button>
+    <button class="tab" data-view="recipes">Cook</button>
+  </div>
+
+  <div class="search" id="searchBox">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+    <input id="search" placeholder="Search the shelf…">
+  </div>
+
+  <div id="content"><div class="shelf" id="shelf"></div></div>
+</div>
+
+<div class="fab">
+  <button class="scan" onclick="openScanner()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M11 8v8M15 8v8"/></svg>
+    Scan
+  </button>
+  <button class="add" onclick="openSheet()">+ Add</button>
+</div>
+
+<!-- Add / edit sheet -->
+<div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <button class="sheet-close" onclick="closeSheet()" aria-label="Close">×</button>
+  <div class="grab" data-sheet="sheet"></div>
+  <h2 id="sheetTitle">Add an item</h2>
+
+  <div class="seg" id="catSeg">
+    <button class="on" data-cat="grocery" onclick="setCat('grocery')">🥕 Grocery</button>
+    <button data-cat="supply" onclick="setCat('supply')">🧴 Supply</button>
+  </div>
+
+  <label class="f">Name</label>
+  <input id="f-name" placeholder="e.g. Rolled oats">
+
+  <label class="f" id="subLabel">Category / type</label>
+  <select id="f-subtype" onchange="onCategoryChange()"></select>
+  <div id="newCatRow" style="display:none;margin-top:8px">
+    <input id="f-newcat" placeholder="Name the new category…" autocomplete="off">
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="ghost" style="margin:0" onclick="cancelNewCat()">Cancel</button>
+      <button class="ghost" style="margin:0;background:var(--amber);color:#1a1207;border-color:var(--amber)" onclick="saveNewCat()">Add category</button>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div>
+      <label class="f">Quantity</label>
+      <input id="f-qty" type="number" value="1" min="1" inputmode="numeric">
+    </div>
+    <div>
+      <label class="f">Bought</label>
+      <input id="f-date" type="date">
+    </div>
+  </div>
+
+  <label class="f" id="bestbyLabel">Best by <span style="text-transform:none;font-weight:400;color:var(--muted)">— optional, we'll estimate</span></label>
+  <input id="f-expires" type="date">
+
+  <label class="f">Photo (optional)</label>
+  <button class="ghost" onclick="document.getElementById('f-photo').click()">
+    📷 Take or choose a photo
+  </button>
+  <input id="f-photo" type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+  <img id="f-preview" class="photo-preview" style="display:none">
+
+  <label class="f">Notes (optional)</label>
+  <input id="f-notes" placeholder="Anything worth remembering">
+
+  <input type="hidden" id="f-upc">
+  <input type="hidden" id="f-id">
+  <button class="save" id="saveBtn" onclick="saveItem()">Add to pantry</button>
+  <button class="del-item" id="delBtn" onclick="deleteCurrentItem()" style="display:none">Remove from pantry</button>
+</div>
+
+<!-- Category manager -->
+<div class="sheet-bg" id="catMgrBg" onclick="closeCategoryManager()"></div>
+<div class="sheet" id="catMgr">
+  <button class="sheet-close" onclick="closeCategoryManager()" aria-label="Close">×</button>
+  <div class="grab" data-sheet="catMgr"></div>
+  <h2>Manage categories</h2>
+  <div class="seg" id="catMgrSeg">
+    <button class="on" data-k="grocery" onclick="catMgrKind('grocery')">🥕 Grocery</button>
+    <button data-k="supply" onclick="catMgrKind('supply')">🧴 Supply</button>
+  </div>
+  <div id="catMgrList" style="margin-top:14px"></div>
+  <div class="list-add" style="margin-top:14px">
+    <input id="catMgrNew" placeholder="Add a category…" autocomplete="off">
+    <button onclick="catMgrAdd()">Add</button>
+  </div>
+</div>
+
+<!-- Recipe detail -->
+<div class="sheet-bg" id="recipeBg" onclick="closeRecipe()"></div>
+<div class="sheet" id="recipeSheet">
+  <button class="sheet-close" onclick="closeRecipe()" aria-label="Close">×</button>
+  <div class="grab" data-sheet="recipeSheet"></div>
+  <div id="recipeBody"></div>
+</div>
+
+<!-- Scanner -->
+<div id="scanView">
+  <video id="video" playsinline autoplay muted></video>
+  <div class="scan-frame"><div class="reticle"></div></div>
+  <button class="scan-close" onclick="closeScanner()">×</button>
+  <div class="scan-hint">Line the barcode up inside the frame</div>
+  <button class="scan-manual" onclick="manualEntry()">Type it instead</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "";
+let view = "grocery";
+let items = [];
+let photoData = null;
+let codeReader = null;
+let isOffline = false;
+
+/* ---------- offline handling ---------- */
+// A response tagged __offline means the service worker had nothing cached.
+function markOffline(on, syncedAt){
+  isOffline = on;
+  const bar = document.getElementById("offlineBar");
+  bar.classList.toggle("show", on);
+  if(on){
+    const t = syncedAt || localStorage.getItem("pantry-synced");
+    document.getElementById("syncWhen").textContent = t ? "as of "+fmtSync(t) : "";
+  }
+  // Dim write controls so people know changes won't stick until they're back.
+  document.body.classList.toggle("offline-mode", on);
+}
+function fmtSync(iso){
+  const d = new Date(iso), now = new Date();
+  const mins = Math.round((now-d)/60000);
+  if(mins < 1) return "just now";
+  if(mins < 60) return mins+"m ago";
+  const hrs = Math.round(mins/60);
+  if(hrs < 24) return hrs+"h ago";
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+
+    " "+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+
+/* ---------- data ---------- */
+async function load(){
+  try{
+    const itemsUrl = view==='expiring'
+      ? API+"/api/items?filter=expiring"
+      : API+`/api/items?category=${view==='recipes'?'grocery':view}`;
+    const [s, r] = await Promise.all([
+      fetch(API+"/api/stats").then(r=>r.json()),
+      fetch(itemsUrl).then(r=>r.json())
+    ]);
+    if(s.__offline || r.__offline){
+      // Never synced on this device — nothing to show yet.
+      markOffline(true);
+      if(!items.length) render();
+      return;
+    }
+    // Fresh data from the Pi: record when we last had a real sync.
+    const stamp = new Date().toISOString();
+    localStorage.setItem("pantry-synced", stamp);
+    markOffline(false);
+    document.getElementById("s-groc").textContent = s.groceries;
+    document.getElementById("s-sup").textContent = s.supplies;
+    document.getElementById("s-exp").textContent = s.expiring;
+    document.getElementById("stat-exp").classList.toggle("alert", s.expiring>0);
+    if(view!=="recipes"){ items = r; render(); }
+  }catch(e){
+    // Total network failure and the SW couldn't intercept.
+    markOffline(true);
+    if(!items.length) render();
+  }
+}
+
+function render(){
+  const q = document.getElementById("search").value.toLowerCase();
+  const shelf = document.getElementById("shelf");
+  const list = items.filter(i=>i.name.toLowerCase().includes(q) ||
+      (i.subtype||"").toLowerCase().includes(q));
+  if(!list.length){
+    let msg;
+    if(view==='expiring') msg = `<div class="big">✨</div><p>Nothing's about to spoil.<br>The fridge is in good shape.</p>`;
+    else msg = `<div class="big">🫙</div><p>${q?'Nothing matches that.':'The shelf is empty.<br>Scan or add your first item.'}</p>`;
+    shelf.innerHTML = `<div class="empty">${msg}</div>`;
+    return;
+  }
+  shelf.innerHTML = list.map(i=>`
+    <div class="item ${i.category==='supply'?'supply':(i.freshness||'')}">
+      <div class="thumb" onclick="openItem(${i.id})" style="cursor:pointer">${i.photo_url?`<img src="${i.photo_url}">`:`<span class="ph">${i.category==='supply'?'🧴':'🥫'}</span>`}</div>
+      <div class="body" onclick="openItem(${i.id})" style="cursor:pointer">
+        <div class="name">${esc(i.name)}</div>
+        <div class="meta">
+          ${i.subtype?`<span class="pill type">${esc(i.subtype)}</span>`:''}
+          ${freshCue(i)}
+          <span class="pill">${fmtDate(i.bought_at)}</span>
+        </div>
+      </div>
+      <div class="qty">
+        <button class="qbtn" onclick="bump(${i.id},-1)">−</button>
+        <span class="qnum">${i.quantity}</span>
+        <button class="qbtn" onclick="bump(${i.id},1)">+</button>
+      </div>
+      <button class="done" onclick="finish(${i.id})" title="Mark used up">✓</button>
+    </div>`).join("");
+}
+
+async function renderRecipes(){
+  const shelf = document.getElementById("content");
+  shelf.innerHTML = `<div class="empty"><div class="big">🍳</div><p>Finding recipes from your groceries…</p></div>`;
+  let data;
+  try{
+    data = await fetch(API+"/api/recipes").then(r=>r.json());
+  }catch(e){
+    shelf.innerHTML = `<div class="empty"><div class="big">📶</div><p>Couldn't reach the recipe service.<br>Check the connection and try again.</p></div>`;
+    return;
+  }
+  const recipes = (data && data.recipes) || [];
+  if(data && data.source==='empty'){
+    shelf.innerHTML = `<div class="empty"><div class="big">🍳</div>
+      <p>Add a few groceries and meal ideas will show up here.</p></div>`;
+    return;
+  }
+  if(!recipes.length){
+    shelf.innerHTML = `<div class="empty"><div class="big">🤔</div>
+      <p>No matches for what's on the shelf right now.<br>Try adding a few common ingredients.</p></div>`;
+    return;
+  }
+  const note = data.source==='offline'
+    ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Showing built-in ideas (recipe service unreachable).</div>`
+    : '';
+  shelf.innerHTML = note + recipes.map(rec=>{
+    // Online recipes have id/thumb/uses; offline ones have have/missing.
+    if(rec.id){
+      const uses = (rec.uses||[]);
+      return `
+      <div class="recipe recipe-card" onclick="openRecipe('${rec.id}')">
+        ${rec.thumb?`<img class="recipe-thumb" src="${esc(rec.thumb)}" loading="lazy">`:''}
+        <div class="recipe-info">
+          <h3>${esc(rec.title)}</h3>
+          <div class="tags">
+            ${uses.map(u=>`<span class="tag">${esc(u)}</span>`).join("")}
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Uses ${uses.length} of your item${uses.length!==1?'s':''} · tap for recipe</div>
+        </div>
+      </div>`;
+    }
+    // Offline fallback card (original style)
+    return `
+      <div class="recipe">
+        <h3>${esc(rec.title)}</h3>
+        <div class="bar"><span style="width:${Math.round(rec.match*100)}%"></span></div>
+        <div style="font-size:12px;color:var(--muted)">${Math.round(rec.match*100)}% of ingredients on hand</div>
+        <div class="tags">
+          ${(rec.have||[]).map(h=>`<span class="tag">${esc(h)}</span>`).join("")}
+          ${(rec.missing||[]).map(m=>`<span class="tag miss">need ${esc(m)}</span>`).join("")}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+async function openRecipe(id){
+  const bg=document.getElementById('recipeBg'), panel=document.getElementById('recipeSheet');
+  const body=document.getElementById('recipeBody');
+  body.innerHTML=`<div class="empty" style="padding:40px"><span class="spin"></span> Loading recipe…</div>`;
+  bg.classList.add('open'); panel.classList.add('open');
+  let r;
+  try{ r = await fetch(API+`/api/recipe/${id}`).then(x=>x.json()); }
+  catch(e){ body.innerHTML=`<div class="empty"><p>Couldn't load this recipe.</p></div>`; return; }
+  if(!r || r.error){ body.innerHTML=`<div class="empty"><p>Recipe details unavailable.</p></div>`; return; }
+  const missing = (r.ingredients||[]).filter(i=>!i.have);
+  const ings = (r.ingredients||[]).map(i=>`
+    <div class="ring ${i.have?'have':''}">
+      <span class="ring-check">${i.have?'✓':'○'}</span>
+      <span class="ring-name">${esc(i.ingredient)}</span>
+      <span class="ring-meas">${esc(i.measure||'')}</span>
+      ${i.have?'':`<button class="ring-add" onclick="addIngredientToList(this,'${esc(i.ingredient).replace(/'/g,"\\'")}')">+ List</button>`}
+    </div>`).join("");
+  const addAll = missing.length>1
+    ? `<button class="add-all" onclick='addAllToList(${JSON.stringify(missing.map(m=>m.ingredient))})'>➕ Add all ${missing.length} missing to list</button>`
+    : '';
+  const steps = (r.instructions||'').split(/\r?\n/).filter(s=>s.trim());
+  body.innerHTML = `
+    ${r.thumb?`<img class="recipe-hero" src="${esc(r.thumb)}">`:''}
+    <h2 style="margin:14px 0 4px">${esc(r.title)}</h2>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:16px">
+      ${esc(r.category||'')}${r.category&&r.area?' · ':''}${esc(r.area||'')}</div>
+    <h3 class="rsec">Ingredients</h3>
+    ${addAll}
+    <div class="ring-list">${ings}</div>
+    <h3 class="rsec">Method</h3>
+    <ol class="rsteps">${steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+    ${r.youtube?`<a class="rlink" href="${esc(r.youtube)}" target="_blank" rel="noopener">▶ Watch on YouTube</a>`:''}
+  `;
+}
+
+async function addIngredientToList(btn, name){
+  if(isOffline){ toast("Offline — reconnect to add"); return; }
+  const who = myName() || 'someone';
+  try{
+    await fetch(API+"/api/list",{method:"POST",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, added_by:who})});
+    if(btn){ btn.textContent='✓ Added'; btn.disabled=true; btn.classList.add('added'); }
+    refreshStats();
+  }catch(e){ toast("Couldn't add"); }
+}
+
+async function addAllToList(names){
+  if(isOffline){ toast("Offline — reconnect to add"); return; }
+  const who = myName() || 'someone';
+  let n=0;
+  for(const name of names){
+    try{
+      await fetch(API+"/api/list",{method:"POST",headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name, added_by:who})});
+      n++;
+    }catch(e){}
+  }
+  toast(`Added ${n} item${n!==1?'s':''} to the list`);
+  // Reflect the change: mark all per-item buttons as added, disable add-all.
+  document.querySelectorAll('#recipeBody .ring-add').forEach(b=>{
+    b.textContent='✓ Added'; b.disabled=true; b.classList.add('added');
+  });
+  const aa=document.querySelector('#recipeBody .add-all');
+  if(aa){ aa.textContent='✓ All added to list'; aa.disabled=true; aa.classList.add('added'); }
+  refreshStats();
+}
+function closeRecipe(){
+  document.getElementById('recipeBg').classList.remove('open');
+  document.getElementById('recipeSheet').classList.remove('open');
+}
+
+async function bump(id, d){
+  if(isOffline){ toast("Offline — can't change the shelf right now"); return; }
+  const it = items.find(x=>x.id===id);
+  const q = Math.max(0, it.quantity + d);
+  if(q===0){ return finish(id); }
+  it.quantity = q; render();
+  try{
+    await fetch(API+`/api/items/${id}`,{method:"PATCH",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({quantity:q})});
+  }catch(e){ markOffline(true); toast("Offline — change didn't save"); }
+}
+async function finish(id){
+  if(isOffline){ toast("Offline — can't change the shelf right now"); return; }
+  try{
+    await fetch(API+`/api/items/${id}`,{method:"PATCH",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({consumed:1})});
+    toast("Marked used up");
+    load();
+  }catch(e){ markOffline(true); toast("Offline — change didn't save"); }
+}
+
+/* ---------- sheet ---------- */
+let curCat = "grocery";
+let categoriesCache = {grocery:[], supply:[]};
+let pendingSubtype = null;  // remembers a prefill value across dropdown rebuilds
+
+async function loadCategories(){
+  try{
+    const d = await fetch(API+"/api/categories").then(r=>r.json());
+    if(d && !d.__offline){ categoriesCache = d; }
+  }catch(e){}
+}
+
+function populateCategoryDropdown(kind, selected){
+  const sel = document.getElementById('f-subtype');
+  const cats = (categoriesCache[kind]||[]);
+  let html = '<option value="">— pick a category —</option>';
+  html += cats.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  html += '<option value="__add__">➕ Add new category…</option>';
+  html += '<option value="__manage__">✏️ Manage categories…</option>';
+  sel.innerHTML = html;
+  if(selected){
+    // If the prefilled value isn't a known category, add it as a one-off option.
+    if(![...sel.options].some(o=>o.value===selected)){
+      const o=document.createElement('option'); o.value=selected; o.textContent=selected;
+      sel.insertBefore(o, sel.options[sel.options.length-2]);
+    }
+    sel.value = selected;
+  }
+}
+
+function setCat(c){
+  curCat=c;
+  document.querySelectorAll('#catSeg button').forEach(b=>{
+    const on = b.dataset.cat===c;
+    b.classList.toggle('on',on);
+    b.classList.toggle('clay',on&&c==='supply');
+  });
+  document.getElementById('subLabel').textContent =
+    c==='supply' ? 'Type (Detergent, Paper towels…)' : 'Category / type';
+  // Rebuild the dropdown for this kind, preserving any pending/selected value.
+  const keep = pendingSubtype || document.getElementById('f-subtype').value;
+  populateCategoryDropdown(c, keep);
+  pendingSubtype = null;
+  cancelNewCat();
+  // Supplies don't spoil, so hide the best-by field for them.
+  const showBy = c!=='supply';
+  document.getElementById('bestbyLabel').style.display = showBy?'block':'none';
+  document.getElementById('f-expires').style.display = showBy?'block':'none';
+}
+
+function onCategoryChange(){
+  const sel = document.getElementById('f-subtype');
+  if(sel.value==='__add__'){ sel.value=''; showNewCat(); }
+  else if(sel.value==='__manage__'){ sel.value=''; openCategoryManager(); }
+}
+
+function showNewCat(){
+  document.getElementById('newCatRow').style.display='block';
+  const inp=document.getElementById('f-newcat');
+  inp.value=''; inp.focus();
+  inp.onkeydown=e=>{ if(e.key==='Enter') saveNewCat(); };
+}
+function cancelNewCat(){
+  const row=document.getElementById('newCatRow');
+  if(row) row.style.display='none';
+}
+async function saveNewCat(){
+  const name=document.getElementById('f-newcat').value.trim();
+  if(!name){ toast("Name the category first"); return; }
+  try{
+    const c = await fetch(API+"/api/categories",{method:"POST",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, kind:curCat})}).then(r=>r.json());
+    await loadCategories();
+    populateCategoryDropdown(curCat, c.name || name);
+    cancelNewCat();
+    toast("Category added");
+  }catch(e){ toast("Couldn't add category"); }
+}
+
+/* ---------- category manager ---------- */
+let catMgrCurrentKind = 'grocery';
+function openCategoryManager(){
+  catMgrCurrentKind = curCat || 'grocery';
+  catMgrKind(catMgrCurrentKind);
+  document.getElementById('catMgrBg').classList.add('open');
+  document.getElementById('catMgr').classList.add('open');
+}
+function closeCategoryManager(){
+  document.getElementById('catMgrBg').classList.remove('open');
+  document.getElementById('catMgr').classList.remove('open');
+  // Refresh the add-sheet dropdown in case categories changed.
+  populateCategoryDropdown(curCat, document.getElementById('f-subtype').value);
+}
+function catMgrKind(k){
+  catMgrCurrentKind = k;
+  document.querySelectorAll('#catMgrSeg button').forEach(b=>{
+    const on=b.dataset.k===k;
+    b.classList.toggle('on',on);
+    b.classList.toggle('clay',on&&k==='supply');
+  });
+  renderCatMgrList();
+}
+function renderCatMgrList(){
+  const box=document.getElementById('catMgrList');
+  const cats=categoriesCache[catMgrCurrentKind]||[];
+  if(!cats.length){ box.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px">No categories yet.</div>'; return; }
+  box.innerHTML = cats.map(c=>`
+    <div class="list-row" style="animation:none">
+      <div class="list-body"><div class="list-name">${esc(c.name)}</div></div>
+      <button class="list-del" title="Rename" onclick="catMgrRename(${c.id},'${esc(c.name).replace(/'/g,"\\'")}')" style="font-size:16px">✏️</button>
+      <button class="list-del" title="Delete" onclick="catMgrDelete(${c.id})">×</button>
+    </div>`).join('');
+}
+async function catMgrAdd(){
+  const inp=document.getElementById('catMgrNew');
+  const name=inp.value.trim();
+  if(!name) return;
+  inp.value='';
+  try{
+    await fetch(API+"/api/categories",{method:"POST",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, kind:catMgrCurrentKind})});
+    await loadCategories(); renderCatMgrList();
+  }catch(e){ toast("Couldn't add"); }
+}
+async function catMgrRename(id, current){
+  const name=prompt("Rename category:", current);
+  if(!name || !name.trim() || name.trim()===current) return;
+  try{
+    const r=await fetch(API+`/api/categories/${id}`,{method:"PATCH",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:name.trim()})});
+    if(r.status===409){ toast("That name already exists"); return; }
+    await loadCategories(); renderCatMgrList();
+  }catch(e){ toast("Couldn't rename"); }
+}
+async function catMgrDelete(id){
+  try{
+    await fetch(API+`/api/categories/${id}`,{method:"DELETE"});
+    await loadCategories(); renderCatMgrList();
+  }catch(e){ toast("Couldn't delete"); }
+}
+function openSheet(prefill){
+  photoData=null;
+  document.getElementById('f-preview').style.display='none';
+  ['f-name','f-notes','f-upc','f-id','f-expires'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('f-qty').value=1;
+  document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+  // A prefilled category (from a scan/catalog hit) is applied via setCat below.
+  pendingSubtype = (prefill && prefill.subtype) ? prefill.subtype : null;
+  setCat((prefill && prefill.category) ? prefill.category : 'grocery');
+  document.getElementById('sheetTitle').textContent='Add an item';
+  document.getElementById('saveBtn').textContent='Add to pantry';
+  document.getElementById('delBtn').style.display='none';   // add mode: no delete
+  if(prefill){
+    if(prefill.name) document.getElementById('f-name').value=prefill.name;
+    if(prefill.upc) document.getElementById('f-upc').value=prefill.upc;
+  }
+  document.getElementById('sheetBg').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+function closeSheet(){
+  document.getElementById('sheetBg').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+}
+
+/* Drag-to-dismiss: dragging a sheet's grab handle down far enough closes it.
+   Gives a reliable way out on short screens where the backdrop isn't tappable. */
+function setupSheetDrag(){
+  const closers = {
+    sheet: closeSheet,
+    catMgr: closeCategoryManager,
+    recipeSheet: closeRecipe,
+  };
+  document.querySelectorAll('.grab[data-sheet]').forEach(grab=>{
+    const id = grab.dataset.sheet;
+    const sheet = document.getElementById(id);
+    let startY=0, dy=0, dragging=false;
+    const start = y=>{ startY=y; dy=0; dragging=true; sheet.style.transition='none'; };
+    const move = y=>{
+      if(!dragging) return;
+      dy = Math.max(0, y-startY);           // only downward
+      sheet.style.transform = `translateY(${dy}px)`;
+    };
+    const end = ()=>{
+      if(!dragging) return;
+      dragging=false; sheet.style.transition='';
+      if(dy > 110){ sheet.style.transform=''; (closers[id]||closeSheet)(); }
+      else { sheet.style.transform=''; }    // snap back
+    };
+    grab.addEventListener('touchstart', e=>start(e.touches[0].clientY), {passive:true});
+    grab.addEventListener('touchmove',  e=>move(e.touches[0].clientY),  {passive:true});
+    grab.addEventListener('touchend', end);
+    grab.addEventListener('mousedown', e=>{ start(e.clientY);
+      const mm=ev=>move(ev.clientY), mu=()=>{ end(); document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
+      document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu); });
+  });
+}
+
+/* Open an existing item in the sheet as an editable detail view. */
+function openItem(id){
+  const it = items.find(x=>x.id===id);
+  if(!it){ return; }
+  photoData=null;
+  // Reset transient bits, then fill from the item.
+  document.getElementById('f-newcat').value='';
+  cancelNewCat();
+  document.getElementById('f-name').value = it.name || '';
+  document.getElementById('f-qty').value = it.quantity || 1;
+  document.getElementById('f-date').value = it.bought_at || new Date().toISOString().slice(0,10);
+  document.getElementById('f-expires').value = it.expires_at || '';
+  document.getElementById('f-notes').value = it.notes || '';
+  document.getElementById('f-upc').value = it.upc || '';
+  document.getElementById('f-id').value = it.id;
+  // Category + type dropdown (setCat repopulates and applies the value).
+  pendingSubtype = it.subtype || null;
+  setCat(it.category || 'grocery');
+  // Existing photo preview (kept unless the user picks a new one).
+  const prev = document.getElementById('f-preview');
+  if(it.photo_url){ prev.src = it.photo_url; prev.style.display='block'; }
+  else { prev.style.display='none'; }
+  // Edit-mode chrome.
+  document.getElementById('sheetTitle').textContent = 'Item details';
+  document.getElementById('saveBtn').textContent = 'Save changes';
+  document.getElementById('delBtn').style.display = 'block';
+  document.getElementById('sheetBg').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+
+async function deleteCurrentItem(){
+  const id = document.getElementById('f-id').value;
+  if(!id) return;
+  if(isOffline){ toast("Offline — reconnect to remove"); return; }
+  const it = items.find(x=>x.id==id);
+  if(!confirm(`Remove "${it?it.name:'this item'}" from the pantry?`)) return;
+  try{
+    await fetch(API+`/api/items/${id}`,{method:"DELETE"});
+    closeSheet(); toast("Removed");
+    load();
+  }catch(e){ toast("Couldn't remove"); }
+}
+function handlePhoto(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const c=document.createElement('canvas');
+      const max=900, sc=Math.min(1,max/Math.max(img.width,img.height));
+      c.width=img.width*sc; c.height=img.height*sc;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      photoData=c.toDataURL('image/jpeg',0.8);
+      const p=document.getElementById('f-preview');
+      p.src=photoData; p.style.display='block';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function saveItem(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){ toast("Give it a name first"); return; }
+  if(isOffline){ toast("Offline — reconnect to save"); return; }
+  const editId = document.getElementById('f-id').value;
+  const btn=document.getElementById('saveBtn');
+  btn.innerHTML='<span class="spin"></span> Saving…'; btn.disabled=true;
+  let photo=null;
+  if(photoData){
+    const up=await fetch(API+"/api/photo",{method:"POST",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:photoData})}).then(r=>r.json());
+    photo=up.photo;
+  }
+  let subVal = document.getElementById('f-subtype').value.trim();
+  if(subVal==='__add__' || subVal==='__manage__') subVal='';  // never save sentinels
+  const payload={
+    name, category:curCat,
+    subtype:subVal,
+    upc:document.getElementById('f-upc').value.trim(),
+    quantity:parseInt(document.getElementById('f-qty').value)||1,
+    bought_at:document.getElementById('f-date').value,
+    expires_at:document.getElementById('f-expires').value,
+    notes:document.getElementById('f-notes').value.trim(),
+  };
+  if(photo) payload.photo = photo;  // only overwrite the photo if a new one was picked
+
+  try{
+    if(editId){
+      // Editing an existing item — update it in place.
+      await fetch(API+`/api/items/${editId}`,{method:"PATCH",headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)});
+      btn.disabled=false; btn.textContent='Save changes';
+      closeSheet(); toast("Saved");
+      load();
+    }else{
+      // New item.
+      await fetch(API+"/api/items",{method:"POST",headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)});
+      btn.disabled=false; btn.textContent='Add to pantry';
+      closeSheet(); toast("Added to the shelf");
+      if(payload.category!==view && view!=='recipes'){ switchView(payload.category); }
+      else load();
+    }
+  }catch(e){
+    btn.disabled=false;
+    btn.textContent = editId ? 'Save changes' : 'Add to pantry';
+    toast("Couldn't save — try again");
+  }
+}
+
+/* ---------- scanner ---------- */
+let scanStream = null;
+async function openScanner(){
+  const v=document.getElementById('scanView');
+  const video=document.getElementById('video');
+  v.style.display='flex';
+  try{
+    // Acquire the back camera ourselves and attach the stream directly. iOS
+    // Safari renders a black frame unless the <video> is muted + playsInline and
+    // is explicitly play()ed, so we do that here rather than leaving it to the
+    // scanner library. We then hand the already-playing element to ZXing.
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+    video.setAttribute('playsinline','');   // belt-and-braces for older iOS
+    video.muted = true;
+    video.srcObject = scanStream;
+    await video.play().catch(()=>{});        // some iOS builds need this awaited
+
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const onResult = (res)=>{ if(res){ onScanned(res.getText()); } };
+    // Decode from the stream/element we already have playing. Method names vary
+    // slightly across ZXing builds, so use whichever this version exposes.
+    if(typeof codeReader.decodeFromStream === "function"){
+      codeReader.decodeFromStream(scanStream, video, onResult);
+    }else if(typeof codeReader.decodeFromVideoElement === "function"){
+      codeReader.decodeFromVideoElement(video, onResult);
+    }else{
+      // Last resort: let the library open the device itself (video is already set up).
+      codeReader.decodeFromVideoDevice(undefined, 'video', onResult);
+    }
+  }catch(e){
+    // Fall back to the library's own device path; if that also fails, tell them.
+    try{
+      codeReader = new ZXing.BrowserMultiFormatReader();
+      await codeReader.decodeFromVideoDevice(undefined,'video',(res)=>{
+        if(res){ onScanned(res.getText()); }
+      });
+    }catch(e2){
+      closeScanner();
+      toast("Camera unavailable — tap 'Type it instead'");
+    }
+  }
+}
+function closeScanner(){
+  if(codeReader){ try{ codeReader.reset(); }catch(e){} codeReader=null; }
+  // Stop the camera so the phone's camera light turns off.
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  const video=document.getElementById('video');
+  if(video){ video.srcObject=null; }
+  document.getElementById('scanView').style.display='none';
+}
+async function onScanned(code){
+  if(navigator.vibrate) navigator.vibrate(60);
+  closeScanner();
+  toast('<span class="spin"></span> Looking up '+code);
+  try{
+    const info=await fetch(API+"/api/upc/"+code).then(r=>r.ok?r.json():null);
+    if(info && info.name){
+      openSheet({name:info.name, subtype:info.subtype, upc:code, category:info.category});
+      toast("Found it — check the details");
+    }else{
+      openSheet({upc:code});
+      toast("New product — add the details");
+    }
+  }catch(e){
+    openSheet({upc:code});
+  }
+}
+function manualEntry(){
+  const code=prompt("Enter the UPC number:");
+  closeScanner();
+  if(code) onScanned(code.trim());
+}
+
+/* ---------- nav ---------- */
+function switchView(v){
+  view=v;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  document.getElementById('searchBox').style.display =
+    (v==='recipes'||v==='expiring'||v==='list')?'none':'block';
+  // The scan/add FAB is for inventory, not the shopping list.
+  document.querySelector('.fab').style.display = (v==='list')?'none':'flex';
+  if(v==='recipes'){ renderRecipes(); }
+  else if(v==='list'){ renderList(); }
+  else { document.getElementById('content').innerHTML='<div class="shelf" id="shelf"></div>'; load(); }
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));
+document.getElementById('search').oninput=render;
+
+/* ---------- identity (per-device name, remembered) ---------- */
+function myName(){ return localStorage.getItem("pantry-who") || ""; }
+function setMyName(n){
+  n=(n||"").trim();
+  if(n) localStorage.setItem("pantry-who", n);
+}
+
+/* ---------- grocery list ---------- */
+async function renderList(){
+  const content = document.getElementById('content');
+  // First visit on this device: ask who they are before showing the list.
+  if(!myName()){
+    content.innerHTML = `
+      <div class="name-prompt">
+        <h3>Who's this?</h3>
+        <p>Pick a name so the household knows who added what.
+           Just this once — we'll remember it on this phone.</p>
+        <input id="nameInput" placeholder="e.g. Sam" autocomplete="off">
+        <button onclick="saveNameAndList()">Save</button>
+      </div>`;
+    const inp = document.getElementById('nameInput');
+    inp.focus();
+    inp.onkeydown = e=>{ if(e.key==='Enter') saveNameAndList(); };
+    return;
+  }
+  let rows;
+  try{
+    rows = await fetch(API+"/api/list").then(r=>r.json());
+  }catch(e){ markOffline(true); rows = []; }
+  if(rows.__offline){ markOffline(true); rows = []; }
+
+  const toBuy   = rows.filter(r=>!r.checked);
+  const grabbed = rows.filter(r=>r.checked);
+
+  let html = `
+    <div class="whoami">Adding as <b>${esc(myName())}</b>
+      <button onclick="changeName()">change</button></div>
+    <div class="list-add">
+      <input id="listInput" placeholder="Add something to buy…" autocomplete="off">
+      <button onclick="addToList()">Add</button>
+    </div>`;
+
+  if(!toBuy.length && !grabbed.length){
+    html += `<div class="empty"><div class="big">📝</div>
+      <p>The list is empty.<br>Add what the house needs.</p></div>`;
+  }else{
+    html += toBuy.map(listRowHTML).join("");
+    if(grabbed.length){
+      html += `<div class="list-divider">In the cart (${grabbed.length})</div>`;
+      html += grabbed.map(listRowHTML).join("");
+      html += `<button class="list-clear" onclick="clearChecked()">Clear ${grabbed.length} grabbed item${grabbed.length>1?'s':''}</button>`;
+    }
+  }
+  content.innerHTML = html;
+
+  const inp = document.getElementById('listInput');
+  if(inp){ inp.onkeydown = e=>{ if(e.key==='Enter') addToList(); }; }
+}
+
+function listRowHTML(r){
+  const who = r.checked
+    ? `grabbed by ${esc(r.checked_by||'someone')}`
+    : `added by ${esc(r.added_by||'someone')}`;
+  return `
+    <div class="list-row ${r.checked?'checked':''}">
+      <div class="list-check ${r.checked?'on':''}" onclick="toggleListItem(${r.id},${r.checked?0:1})">
+        ${r.checked?'✓':''}
+      </div>
+      <div class="list-body">
+        <div class="list-name">${esc(r.name)}</div>
+        <div class="list-meta">${who}</div>
+      </div>
+      <button class="list-del" onclick="deleteListItem(${r.id})">×</button>
+    </div>`;
+}
+
+function saveNameAndList(){
+  const v = document.getElementById('nameInput').value;
+  if(!v.trim()){ toast("Enter a name first"); return; }
+  setMyName(v);
+  renderList();
+}
+function changeName(){
+  const n = prompt("Your name on the list:", myName());
+  if(n && n.trim()){ setMyName(n); renderList(); }
+}
+
+async function addToList(){
+  const inp = document.getElementById('listInput');
+  const name = inp.value.trim();
+  if(!name) return;
+  if(isOffline){ toast("Offline — reconnect to add"); return; }
+  inp.value = '';
+  try{
+    await fetch(API+"/api/list",{method:"POST",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, added_by:myName()})});
+    renderList();
+    refreshStats();
+  }catch(e){ toast("Couldn't add — try again"); }
+}
+
+async function toggleListItem(id, checked){
+  if(isOffline){ toast("Offline — reconnect to update"); return; }
+  try{
+    await fetch(API+`/api/list/${id}`,{method:"PATCH",headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({checked:!!checked, checked_by:myName()})});
+    renderList();
+    refreshStats();
+  }catch(e){ toast("Couldn't update"); }
+}
+
+async function deleteListItem(id){
+  if(isOffline){ toast("Offline — reconnect to remove"); return; }
+  try{
+    await fetch(API+`/api/list/${id}`,{method:"DELETE"});
+    renderList();
+    refreshStats();
+  }catch(e){ toast("Couldn't remove"); }
+}
+
+async function clearChecked(){
+  if(isOffline){ toast("Offline — reconnect to clear"); return; }
+  try{
+    const r = await fetch(API+"/api/list/clear-checked",{method:"POST"}).then(r=>r.json());
+    toast(`Cleared ${r.cleared} item${r.cleared!==1?'s':''}`);
+    renderList();
+    refreshStats();
+  }catch(e){ toast("Couldn't clear"); }
+}
+
+// Lightweight stats refresh (updates the header counts without a full reload).
+async function refreshStats(){
+  try{
+    const s = await fetch(API+"/api/stats").then(r=>r.json());
+    if(s.__offline) return;
+    document.getElementById("s-groc").textContent = s.groceries;
+    document.getElementById("s-sup").textContent = s.supplies;
+    document.getElementById("s-exp").textContent = s.expiring;
+    document.getElementById("stat-exp").classList.toggle("alert", s.expiring>0);
+  }catch(e){}
+}
+
+
+/* ---------- util ---------- */
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function freshCue(i){
+  if(i.category==='supply' || !i.freshness || i.freshness==='none') return '';
+  const d = i.days_left;
+  let label;
+  if(i.freshness==='expired') label = d===-1 ? 'expired yesterday' : `expired ${-d}d ago`;
+  else if(d===0) label = 'use today';
+  else if(d===1) label = '1 day left';
+  else label = `${d} days left`;
+  // Only surface a badge when it's worth attention; fresh items stay quiet.
+  if(i.freshness==='fresh') return '';
+  return `<span class="fresh-cue ${i.freshness}"><span class="fresh-dot"></span>${label}</span>`;
+}
+function fmtDate(d){
+  if(!d) return '';
+  const dt=new Date(d+'T00:00'), now=new Date();
+  const days=Math.round((now-dt)/864e5);
+  if(days===0) return 'today';
+  if(days===1) return 'yesterday';
+  if(days<7) return days+'d ago';
+  if(days<30) return Math.floor(days/7)+'w ago';
+  return dt.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.innerHTML=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---------- offline / service worker ---------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  });
+}
+// React instantly to the browser's own connectivity signals.
+window.addEventListener("online",()=>{ toast("Back home — syncing"); load(); });
+window.addEventListener("offline",()=>{ markOffline(true); });
+if(!navigator.onLine) markOffline(true);
+
+load();
+loadCategories();
+setupSheetDrag();
+
+</script>
+</body>
+</html>

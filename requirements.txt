@@ -1,0 +1,10 @@
+# Pantry's only runtime dependencies. Ranges are deliberately wide so this
+# installs on older Raspberry Pi OS (Python 3.7 / Buster) as well as current
+# systems:
+#   - Python 3.7  -> Flask 2.2.x + Werkzeug 2.2.x (the newest that support 3.7)
+#   - Python 3.8+ -> pip picks up Flask 3.x automatically
+# Werkzeug is pinned alongside Flask because Flask 2.2 breaks with Werkzeug 3.x,
+# and on Python 3.7 pip must stay on the 2.2 line for both.
+Flask>=2.0,<4.0
+Werkzeug>=2.0,<4.0
+gunicorn>=20.1
