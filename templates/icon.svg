@@ -1,9 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#14201b"/>
-  <rect x="176" y="150" width="160" height="228" rx="30" fill="#22332b" stroke="#31473c" stroke-width="8"/>
-  <rect x="196" y="120" width="120" height="44" rx="16" fill="#22332b" stroke="#31473c" stroke-width="8"/>
-  <rect x="176" y="250" width="160" height="128" rx="0" fill="#f2b155"/>
-  <path d="M176 250 h160 v98 a30 30 0 0 1 -30 30 h-100 a30 30 0 0 1 -30 -30 z" fill="#f2b155"/>
-  <rect x="212" y="288" width="88" height="20" rx="10" fill="#14201b" opacity="0.35"/>
-  <circle cx="256" cy="98" r="12" fill="#f2b155"/>
+  <defs>
+    <clipPath id="jar"><rect x="158" y="164" width="196" height="248" rx="56"></rect></clipPath>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17281f"></stop>
+      <stop offset="1" stop-color="#0d150f"></stop>
+    </linearGradient>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6bd68"></stop>
+      <stop offset="1" stop-color="#e79a3c"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#bg)"></rect>
+
+  
+  <rect x="176" y="104" width="160" height="46" rx="20" fill="#eef3ec"></rect>
+  <rect x="196" y="150" width="120" height="20" rx="8" fill="#c9d4cc"></rect>
+
+  
+  <g clip-path="url(#jar)">
+    <rect x="158" y="164" width="196" height="248" fill="#22362b"></rect>
+    
+    <rect x="158" y="286" width="196" height="126" fill="url(#fill)"></rect>
+    <path d="M158 286 q49 -20 98 0 t98 0 v12 h-196 z" fill="#6bbf88"></path>
+    
+    <rect x="186" y="196" width="20" height="176" rx="10" fill="#ffffff" opacity="0.10"></rect>
+  </g>
+  <rect x="158" y="164" width="196" height="248" rx="56" fill="none" stroke="#eef3ec" stroke-width="10" opacity="0.9"></rect>
 </svg>

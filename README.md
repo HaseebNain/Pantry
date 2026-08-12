@@ -273,6 +273,16 @@ Notes:
 - The free key returns single-ingredient matches, which Pantry combines across
   your groceries — no key or payment required.
 
+**At-a-glance alerts.** Whenever groceries are expiring, an amber banner appears
+at the top of the app ("2 to use soon", or "1 expired · 2 to use soon" in red if
+something's past its date), and the **Use soon** tab shows a count badge. Tapping
+the banner jumps straight to the at-risk list. These appear whenever anyone opens
+Pantry — no notifications to set up, and they work on every device and address
+(home or Tailscale). (True push notifications aren't practical here: on iOS they
+require each phone to install the app to its home screen *and* use the trusted
+Tailscale address, so they'd reach only some of the household. The in-app alerts
+sidestep all of that.)
+
 ## Camera scanning & HTTPS
 
 Phone browsers only allow camera access over `https://` (or `localhost`), so

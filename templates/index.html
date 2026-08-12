@@ -363,6 +363,26 @@ label.f{display:block;font-size:12px;color:var(--muted);text-transform:uppercase
 .offline-bar .inner svg{width:16px;height:16px;flex-shrink:0;color:var(--clay)}
 .offline-bar b{color:#fff;font-weight:600}
 .offline-bar .when{color:var(--muted);margin-left:auto;white-space:nowrap;font-size:12px}
+
+/* Expiry alert banner — mirrors the offline bar but amber/urgent. */
+.expiry-bar{max-width:680px;margin:0 auto 4px;padding:0 18px;display:none;cursor:pointer}
+.expiry-bar.show{display:block}
+.expiry-bar .inner{display:flex;align-items:center;gap:10px;
+  background:linear-gradient(180deg,rgba(232,132,60,.16),rgba(232,132,60,.08));
+  border:1px solid rgba(232,132,60,.45);color:#f6b27a;border-radius:12px;padding:11px 13px;font-size:13.5px}
+.expiry-bar .inner svg{width:17px;height:17px;flex-shrink:0;color:#f0a15a}
+.expiry-bar b{color:#fff;font-weight:600}
+.expiry-bar .chev{margin-left:auto;font-size:20px;color:#f0a15a;line-height:1}
+.expiry-bar.expired .inner{background:linear-gradient(180deg,rgba(217,79,79,.18),rgba(217,79,79,.08));
+  border-color:rgba(217,79,79,.5);color:#f0a0a0}
+.expiry-bar.expired .inner svg,.expiry-bar.expired .chev{color:#e57373}
+
+/* Count badge on the Use soon tab. */
+.tab-badge{display:none;min-width:17px;height:17px;padding:0 5px;margin-left:5px;
+  border-radius:9px;background:#e8843c;color:#1a1207;font-size:11px;font-weight:700;
+  line-height:17px;text-align:center;vertical-align:middle}
+.tab-badge.show{display:inline-block}
+.tab.active .tab-badge{background:#1a1207;color:var(--amber)}
 body.offline-mode .qbtn,body.offline-mode .done,body.offline-mode .fab{opacity:.45}
 
 .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);
@@ -390,12 +410,21 @@ body.offline-mode .qbtn,body.offline-mode .done,body.offline-mode .fab{opacity:.
   </div>
 </div>
 
+<!-- Expiry alert: shown when groceries are expiring/expired. Tapping opens the list. -->
+<div class="expiry-bar" id="expiryBar" onclick="switchView('expiring')">
+  <div class="inner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    <span id="expiryMsg"></span>
+    <span class="chev">›</span>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="tabs">
     <button class="tab active" data-view="grocery">Groceries</button>
     <button class="tab" data-view="supply">Supplies</button>
     <button class="tab" data-view="list">List</button>
-    <button class="tab" data-view="expiring">Use soon</button>
+    <button class="tab" data-view="expiring">Use soon<span class="tab-badge" id="expiringBadge"></span></button>
     <button class="tab" data-view="recipes">Cook</button>
   </div>
 
@@ -562,6 +591,7 @@ async function load(){
     document.getElementById("s-sup").textContent = s.supplies;
     document.getElementById("s-exp").textContent = s.expiring;
     document.getElementById("stat-exp").classList.toggle("alert", s.expiring>0);
+    applyExpiryUI(s);
     if(view!=="recipes"){ items = r; render(); }
   }catch(e){
     // Total network failure and the SW couldn't intercept.
@@ -1139,6 +1169,10 @@ function switchView(v){
     (v==='recipes'||v==='expiring'||v==='list')?'none':'block';
   // The scan/add FAB is for inventory, not the shopping list.
   document.querySelector('.fab').style.display = (v==='list')?'none':'flex';
+  // The expiry banner is redundant while already on the Use soon view.
+  const eb = document.getElementById('expiryBar');
+  if(v==='expiring'){ eb.style.display='none'; }
+  else { eb.style.display=''; }
   if(v==='recipes'){ renderRecipes(); }
   else if(v==='list'){ renderList(); }
   else { document.getElementById('content').innerHTML='<div class="shelf" id="shelf"></div>'; load(); }
@@ -1285,7 +1319,37 @@ async function refreshStats(){
     document.getElementById("s-sup").textContent = s.supplies;
     document.getElementById("s-exp").textContent = s.expiring;
     document.getElementById("stat-exp").classList.toggle("alert", s.expiring>0);
+    applyExpiryUI(s);
   }catch(e){}
+}
+
+/* Update the expiry alert banner and the Use soon tab badge from stats. */
+function applyExpiryUI(s){
+  const count = s.expiring || 0;
+  const expired = s.expired || 0;
+  const soon = Math.max(0, count - expired);
+  // Tab badge
+  const badge = document.getElementById("expiringBadge");
+  if(badge){
+    badge.textContent = count > 99 ? "99+" : count;
+    badge.classList.toggle("show", count > 0);
+  }
+  // Banner
+  const bar = document.getElementById("expiryBar");
+  const msg = document.getElementById("expiryMsg");
+  if(!bar || !msg) return;
+  if(count === 0){ bar.classList.remove("show"); return; }
+  let text;
+  if(expired > 0 && soon > 0){
+    text = `<b>${expired}</b> expired · <b>${soon}</b> to use soon`;
+  } else if(expired > 0){
+    text = `<b>${expired}</b> item${expired>1?'s':''} expired — check the shelf`;
+  } else {
+    text = `<b>${soon}</b> item${soon>1?'s':''} to use soon`;
+  }
+  msg.innerHTML = text;
+  bar.classList.toggle("expired", expired > 0);
+  bar.classList.add("show");
 }
 
 

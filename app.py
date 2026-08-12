@@ -799,6 +799,7 @@ def stats():
     def scalar(q, a=()):
         return db.execute(q, a).fetchone()[0]
     # Count groceries at risk (expired, or best-by within 4 days).
+    today_s = datetime.now().date().strftime("%Y-%m-%d")
     cutoff = (datetime.now().date() + timedelta(days=4)).strftime("%Y-%m-%d")
     expiring = scalar(
         """SELECT COUNT(*) FROM items
@@ -806,10 +807,17 @@ def stats():
              AND expires_at IS NOT NULL AND expires_at <= ?""",
         (cutoff,),
     )
+    expired = scalar(
+        """SELECT COUNT(*) FROM items
+           WHERE category='grocery' AND consumed=0
+             AND expires_at IS NOT NULL AND expires_at < ?""",
+        (today_s,),
+    )
     return jsonify({
         "groceries": scalar("SELECT COUNT(*) FROM items WHERE category='grocery' AND consumed=0"),
         "supplies": scalar("SELECT COUNT(*) FROM items WHERE category='supply' AND consumed=0"),
         "expiring": expiring,
+        "expired": expired,
         "total_items": scalar("SELECT COUNT(*) FROM items WHERE consumed=0"),
         "used_this_week": scalar(
             "SELECT COUNT(*) FROM items WHERE consumed=1 AND created_at >= date('now','-7 day')"
