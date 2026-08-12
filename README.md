@@ -6,6 +6,57 @@ groceries on hand, and lets you **scan a UPC** or **snap a photo** for anything
 without a barcode. Everything lives in a small database on your Raspberry Pi —
 no cloud, no accounts.
 
+## Screenshots
+
+<table>
+<tr>
+<td width="33%">
+<img src="docs/shot_groceries.png" alt="Grocery shelf with freshness-coded cards and an expiry alert banner">
+<br><sub><b>The shelf.</b> Freshness colour-codes every card — green, amber,
+red — and an alert banner surfaces anything expired or expiring the moment you
+open the app.</sub>
+</td>
+<td width="33%">
+<img src="docs/shot_usesoon.png" alt="Use soon tab showing only at-risk groceries sorted by urgency">
+<br><sub><b>Use soon.</b> One tap (from the banner or the badge) filters down
+to just what's at risk, most urgent first — the list to check before deciding
+what's for dinner.</sub>
+</td>
+<td width="33%">
+<img src="docs/shot_supplies.png" alt="Supplies tab with detergent, dish soap, and paper towels">
+<br><sub><b>Supplies.</b> Household goods get their own tab, categories, and
+colour, separate from groceries — no best-by dates cluttering things that
+don't spoil.</sub>
+</td>
+</tr>
+<tr>
+<td width="33%">
+<img src="docs/shot_list.png" alt="Shared shopping list with items added by different household members">
+<br><sub><b>Shared shopping list.</b> Everyone adds from their own phone; each
+item is tagged with who asked for it, and checked-off items move to an "in the
+cart" section until the trip's done.</sub>
+</td>
+<td width="33%">
+<img src="docs/shot_add.png" alt="Add an item form with category dropdown, quantity, dates, and photo">
+<br><sub><b>Adding an item.</b> Scan a UPC or fill this in by hand — category
+dropdown, quantity, an auto-estimated best-by date you can override, and an
+optional photo.</sub>
+</td>
+<td width="33%">
+<img src="docs/shot_detail.png" alt="Item detail view showing editable fields and a remove button">
+<br><sub><b>Tap any item</b> to see and edit everything you entered, or remove
+it from the pantry entirely.</sub>
+</td>
+</tr>
+</table>
+
+<sub>The Cook tab suggests real recipes from TheMealDB based on what's on your
+shelf — tap one for the full recipe with photo, ingredients (yours ticked
+green), method, and a one-tap "add missing to shopping list." (Screenshot below
+shows the offline fallback list; with internet, Cook shows real recipes with
+photos ranked by how many of your ingredients they use.)</sub>
+<br><img src="docs/shot_cook.png" width="33%" alt="Cook tab with ranked recipe suggestions from groceries on hand">
+
 ## What's in the box
 
 | File | Purpose |
@@ -22,6 +73,7 @@ no cloud, no accounts.
 | `requirements.txt` | Python dependencies |
 | `data/` | Where the database and photos are stored |
 | `certs/` | HTTPS certificate (created by `make-cert.sh`; not shipped) |
+| `docs/` | Screenshots used in this README |
 
 ## Install on the Raspberry Pi
 
