@@ -1,0 +1,12 @@
+[Unit]
+Description=Pantry -> Homey expiring-items notifier
+After=network.target pantry.service
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/pantry
+# Fill in your Homey's IP and (optionally) override the webhook event name.
+Environment=HOMEY_IP=192.168.1.XXX
+Environment=WEBHOOK_EVENT=pantry_expiring
+ExecStart=/home/pi/pantry/venv/bin/python /home/pi/pantry/notify_homey.py

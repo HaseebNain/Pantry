@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Pantry -> Homey notifier daily at 8am
+
+[Timer]
+# Runs every day at 8:00am (the Pi's local time). If the Pi was off at 8am
+# (e.g. power cut), Persistent=true runs it once as soon as it's back on.
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

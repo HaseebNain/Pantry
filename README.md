@@ -70,6 +70,8 @@ photos ranked by how many of your ingredients they use.)</sub>
 | `make-cert.sh` | Generates the self-signed HTTPS certificate (for camera) |
 | `run.sh` | Launcher — serves HTTPS if a cert exists, else HTTP |
 | `pantry.service` | Auto-start on boot |
+| `notify_homey.py` | Optional: sends daily expiring-items list to Homey Pro |
+| `pantry-notify.service` / `.timer` | Optional: schedules the Homey notifier daily |
 | `requirements.txt` | Python dependencies |
 | `data/` | Where the database and photos are stored |
 | `certs/` | HTTPS certificate (created by `make-cert.sh`; not shipped) |
@@ -334,6 +336,74 @@ Pantry — no notifications to set up, and they work on every device and address
 require each phone to install the app to its home screen *and* use the trusted
 Tailscale address, so they'd reach only some of the household. The in-app alerts
 sidestep all of that.)
+
+## Notifications via Homey Pro
+
+Pantry doesn't do push notifications itself — on iOS they'd only work for
+people using the trusted Tailscale address with the app installed to their
+home screen, which would reach only part of the household (see *In-app expiry
+alerts* above for why the banner/badge approach was chosen instead). If you
+have a **Homey Pro**, though, you can get real notifications a different way:
+Pantry hands the "what's expiring" list to Homey once a day over your home
+network, and a Homey Flow turns that into a push notification, an announcement,
+a light — whatever you build. Homey already knows how to reliably reach your
+phone, so this sidesteps the iOS/Tailscale limitation entirely.
+
+**How it works:** a small script (`notify_homey.py`) reads Pantry's own
+"Use soon" list and POSTs it to Homey's **local** webhook — no cloud, no
+account linking, just one Pi talking to one Homey on your LAN. A systemd timer
+runs it once a day (8am by default).
+
+### Setup
+
+**1. Find your Homey's local IP** — Homey app → *More (…)* → *Settings* →
+*General*, or check your router's device list.
+
+**2. Configure the two files** (`pantry-notify.service` and `notify_homey.py`
+both read these — set them in the service file so they apply automatically):
+
+```bash
+nano ~/pantry/pantry-notify.service
+```
+Change:
+```ini
+Environment=HOMEY_IP=192.168.1.XXX      # -> your Homey's real IP
+Environment=WEBHOOK_EVENT=pantry_expiring   # optional: rename the event
+```
+
+**3. Build the Homey Flow** — in the Homey app: *Flow* → *New Flow*
+- **When:** *Logic* → *Webhook event `[Event]` has been received* → set the
+  event to `pantry_expiring` (or whatever you set `WEBHOOK_EVENT` to)
+- **Then:** whatever you like — e.g. *Notifications* → *Send yourself a
+  notification* → message: `!{{summary}}` (the webhook's JSON body gives you
+  `count`, `summary` — a readable one-line list — and `items`, a plain array of
+  names, all available as tags in the flow)
+- Only build the "then" step if `count` > 0, using a Logic condition, so it
+  doesn't notify you about nothing.
+
+**4. Install the timer on the Pi:**
+```bash
+cd ~/pantry
+sudo cp pantry-notify.service pantry-notify.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pantry-notify.timer
+```
+
+**5. Test it immediately** (don't wait for 8am):
+```bash
+sudo systemctl start pantry-notify.service
+sudo systemctl status pantry-notify.service   # should say it succeeded
+```
+If it fails, check `HOMEY_IP` is correct and the Pi can reach Homey:
+`ping <homey-ip>` from the Pi.
+
+**Change the schedule:** edit `OnCalendar=` in `pantry-notify.timer` (systemd
+time format — e.g. `08:00:00` and `18:00:00` for twice a day), then
+`sudo systemctl daemon-reload && sudo systemctl restart pantry-notify.timer`.
+
+This only ever *reads* from Pantry's local API — it can't modify your
+inventory, and a failure here (Homey offline, wrong IP) can't affect Pantry
+itself, since it runs as a completely separate scheduled task.
 
 ## Camera scanning & HTTPS
 
