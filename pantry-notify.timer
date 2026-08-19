@@ -1,11 +1,16 @@
 [Unit]
-Description=Run the Pantry -> Homey notifier daily at 8am
+Description=Check hourly whether it's time to run the Pantry -> Homey notifier
 
 [Timer]
-# Runs every day at 8:00am (the Pi's local time). If the Pi was off at 8am
-# (e.g. power cut), Persistent=true runs it once as soon as it's back on.
-OnCalendar=*-*-* 08:00:00
-Persistent=true
+# Runs every hour, on the hour. notify_homey.py itself decides whether *this*
+# hour matches your configured weekday/weekend notify time (see
+# WEEKDAY_HOUR / WEEKEND_HOUR in pantry-notify.service) and only actually
+# contacts Homey once, the first matching hour of the day. This is what makes
+# the weekday/weekend times editable without ever touching this timer file.
+# (No Persistent=true here — if the Pi is off across several missed hours,
+# we don't want it firing a burst of catch-up runs; it'll just check again
+# at the next real hour, and the once-per-day mark still applies.)
+OnCalendar=*-*-* *:00:00
 
 [Install]
 WantedBy=timers.target
