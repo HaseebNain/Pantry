@@ -4,8 +4,8 @@
    - API GETs (items, stats, recipes): network-first, falling back to the last
      cached copy when offline. Writes (POST/PATCH/DELETE) are never cached.
 */
-const SHELL = "pantry-shell-v12";
-const DATA  = "pantry-data-v12";
+const SHELL = "pantry-shell-v13";
+const DATA  = "pantry-data-v13";
 
 const SHELL_ASSETS = [
   "/",

@@ -660,15 +660,17 @@ async function renderRecipes(){
     // Online recipes have id/thumb/uses; offline ones have have/missing.
     if(rec.id){
       const uses = (rec.uses||[]);
+      const pct = Math.round((rec.match||0)*100);
       return `
       <div class="recipe recipe-card" onclick="openRecipe('${rec.id}')">
         ${rec.thumb?`<img class="recipe-thumb" src="${esc(rec.thumb)}" loading="lazy">`:''}
         <div class="recipe-info">
           <h3>${esc(rec.title)}</h3>
-          <div class="tags">
+          <div class="bar"><span style="width:${pct}%"></span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Uses ${uses.length} of your item${uses.length!==1?'s':''} · tap for recipe</div>
+          <div class="tags" style="margin-top:6px">
             ${uses.map(u=>`<span class="tag">${esc(u)}</span>`).join("")}
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px">Uses ${uses.length} of your item${uses.length!==1?'s':''} · tap for recipe</div>
         </div>
       </div>`;
     }
